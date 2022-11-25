@@ -1,0 +1,76 @@
+#include "stm32f10x.h"   // Device header
+#include "ssd1306.h"
+int raw; //deklaracija varijable preko koje ce mo mijenjati analogno-digitalnu konverziju// 
+int raw2;//deklaracija varijable preko koje ce mo mijenjat analogno-digitalnu konverziju na displeju//  
+int ranx,rany,ranr,countdown;
+int score=0;
+bool alive=true;
+static void pogodak();
+int main(void){
+	
+
+RCC->APB2ENR |=RCC_APB2ENR_ADC1EN;//aktivira ADC1 u RCC enable clocku na portA i alternativni function bit//
+	RCC->APB2ENR|=RCC_APB2ENR_IOPAEN;
+	RCC->APB2ENR |=RCC_APB2ENR_AFIOEN;
+	
+	RCC->CFGR |=RCC_CFGR_ADCPRE_DIV6;//postavlja ADC clock u CFGR prescaler od 12MHz do 14 MHZ maksimalno//
+	
+	ADC1->SMPR2  |=ADC_SMPR2_SMP0;//postavlja vrijeme djelovanja  na ch0,pinu A0 SMPR2 registra//
+	ADC1->SQR3 |=(0<<0);//postvljamo,posto imamo samo jednu,postavljamo prvu sekvencu na SQR3 registru//
+	ADC1->CR2 |=ADC_CR2_CONT;//aktviramo ADC_CR2_CONT//
+	ADC1->CR2|=ADC_CR2_ADON;//aktiviramo ADON bit,kako//
+	ADC1->CR2 |= ADC_CR2_RSTCAL;//resetujemo kalibraciju u CR2//
+	while(ADC1->CR2 & ADC_CR2_RSTCAL){;}//dokle je aktivan CR2,sacekati dok se resetuje kalibracija u CR2//
+		
+		ADC1->CR2|=ADC_CR2_CAL;
+		while (ADC1->CR2 & ADC_CR2_CAL){;}//init calibration bit,sacekati dok se resetira CAL bit//
+			ADC1->CR2 |=ADC_CR2_ADON;//postavljamo ponovo 1 na ADON bitu(prvi put dali smo dali kontakt,sada cemo pokrecemo konverziju//
+SSD1306_Init();//aktiviramo driver biblioteku za crtanje po OLED displeju//
+while (1){
+	SSD1306_Fill(SSD1306_COLOR_BLACK);//bojimo OLED displej u crnu nakon pomjeranja kruzica po displeju//
+
+	if (ADC1->SR & ADC_SR_EOC){
+ raw=ADC1->DR;//procitaj raw podatak iz varijable raw=ADC1->DR registra//
+		
+//while(ADC1->SR & ADC_SR_EOC){;}//sacekaj do kraja konverzije EOC bit je 0//
+}
+	raw2=raw/32;//dijeli podatak iz varijable raw=ADC1->DR registra na 32 kako bi mogli prikazati promjenu stanja na displeju//
+SSD1306_DrawPixel(raw2,30,SSD1306_COLOR_WHITE);//crta pixel na OLED displeju koristici informacije sa varijable x na lokaciju 30 po x osi,boja bijela//
+SSD1306_GotoXY(0,0);
+SSD1306_Puts("Score:", &Font_7x10,SSD1306_COLOR_WHITE);
+SSD1306_Putc(score+48, &Font_7x10,SSD1306_COLOR_WHITE);
+SSD1306_GotoXY(90,0);
+SSD1306_Puts("Time:", &Font_7x10,SSD1306_COLOR_WHITE);
+SSD1306_GotoXY(0,20);
+if(alive){
+ranx=rand()%120+5;
+ranr=rand()%5+1;
+	
+	alive=!alive;
+}
+SSD1306_DrawCircle(ranx,30,ranr,SSD1306_COLOR_WHITE);
+
+if (ranx>=raw2-5 && ranx<=raw2+5){
+
+	score++;
+	alive=true;
+	pogodak();
+}
+
+SSD1306_UpdateScreen();
+
+
+}
+}
+
+void pogodak()
+{
+	SSD1306_DrawCircle(ranx,30,1,SSD1306_COLOR_WHITE);
+	SSD1306_DrawCircle(ranx,30,3,SSD1306_COLOR_WHITE);
+	SSD1306_DrawCircle(ranx,30,5,SSD1306_COLOR_WHITE);
+	SSD1306_DrawCircle(ranx,30,7,SSD1306_COLOR_WHITE);
+	SSD1306_DrawCircle(ranx,30,9,SSD1306_COLOR_WHITE);
+	SSD1306_DrawCircle(ranx,30,11,SSD1306_COLOR_WHITE);
+	SSD1306_DrawCircle(ranx,30,13,SSD1306_COLOR_WHITE);
+
+}

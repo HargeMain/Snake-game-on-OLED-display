@@ -1,0 +1,41 @@
+#include "stm32f10x.h"   //device header
+#include "ssd1306.h"    
+int raw;//deklaracija varijable preko koje cemo mjenjat analogno-digitalnu konverziju
+int x;//deklaracija varijable preko koje cemo mjenjat analogno-digitalnu konverziju na displeju
+int main(void){
+	
+
+RCC->APB2ENR |=RCC_APB2ENR_ADC1EN;//aktivira ADC1 u RCC enable clocku na portA i alternativni function bit
+	RCC->APB2ENR|=RCC_APB2ENR_IOPAEN;
+	RCC->APB2ENR |=RCC_APB2ENR_AFIOEN;
+	
+	RCC->CFGR |=RCC_CFGR_ADCPRE_DIV6;//postavlja ADC clock u CFGR prescaler od 12MHz do 14 MHZ maksimalno
+	
+	ADC1->SMPR2  |=ADC_SMPR2_SMP0;//postavlja vrijeme djelovanja  na ch0,pinu A0 SMPR2 registra
+
+	ADC1->SQR3 |=(0<<0);//postvljamo,posto imamo samo jednu,postavljamo prvu sekvencu na SQR3 registru
+	ADC1->CR2 |=ADC_CR2_CONT;//aktviramo ADC_CR2_CONT
+	ADC1->CR2|=ADC_CR2_ADON;//aktiviramo ADON bit,kako bi dali kontakt ADCu 
+	ADC1->CR2 |= ADC_CR2_RSTCAL;//resetujemo kalibraciju u CR2
+	while(ADC1->CR2 & ADC_CR2_RSTCAL){;}//dokle je aktivan CR2,sacekati dok se resetuje kalibracija u CR2
+		
+		ADC1->CR2|=ADC_CR2_CAL;
+		while (ADC1->CR2 & ADC_CR2_CAL){;}////init calibration bit,sacekati dok se resetira CAL bit
+			ADC1->CR2 |=ADC_CR2_ADON;//postavljamo ponovo 1 na ADON bitu(prvi put dali smo dali kontakt,sada cemo pokrecemo konverziju
+SSD1306_Init();//aktiviramo driver biblioteku za crtanje po OLED displeju
+while (1){
+	SSD1306_Fill(SSD1306_COLOR_BLACK);//bojimo OLED displej u crnu nakon pomjeranja kruzica po displeju
+
+	if (ADC1->SR & ADC_SR_EOC){
+ raw=ADC1->DR;//procitaj raw podatak iz varijable raw=ADC1->DR registra
+		
+while(ADC1->SR & ADC_SR_EOC){;}//sacekaj do kraja konverzije EOC bit je 0
+}
+	x=raw/32;//dijeli podatak iz varijable raw=ADC1->DR registra na 32 kako bi mogli prikazati promjenu stanja na displeju
+SSD1306_DrawPixel(x,30,SSD1306_COLOR_WHITE);//crta pixel na OLED displeju koristici informacije sa varijable x na lokaciju 30 po x osi,boja bijela
+
+SSD1306_UpdateScreen();
+
+
+}
+}
